@@ -11,7 +11,7 @@ import itertools
 parser = argparse.ArgumentParser(description='Generate power sets of a finite set')
 parser.add_argument('--rankV', '-rv', type=int, default=2, help='rank of V (symmetric part)')
 parser.add_argument('--rankB', '-rb', type=int, default=0, help='rank of B (anti-symmetric part)')
-parser.add_argument('--n', '-n', default=100, help='number of samples')
+parser.add_argument('--n', '-n', default=5000, help='number of samples')
 parser.add_argument('--dim', '-d', default=5, type=int, help='dimension')
 parser.add_argument('--random', '-r', action='store_true', help='random choice')
 args = parser.parse_args()
@@ -38,7 +38,7 @@ else:
     for i in range(int(round(sum_p*args.n,None))):
         print()
 #    print(L,nm)
-    for m in range(1,max(args.rankV,args.rankB)+1):
+    for m in range(1,args.dim):
         for b in itertools.combinations(l,m):
             p = np.linalg.det(L[b,:][:,b])/nm
             sum_p += p
