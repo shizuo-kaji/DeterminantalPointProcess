@@ -19,8 +19,7 @@ import chainer.links as L
 from chainer import training,datasets,iterators
 from chainer.training import extensions,triggers
 from chainer.dataset import dataset_mixin, convert, concat_examples
-from chainerui.utils import save_args
-import os,shutil,glob
+import os,shutil,glob,json
 from datetime import datetime as dt
 
 from consts import optim,dtypes
@@ -84,7 +83,7 @@ class Dataset(dataset_mixin.DatasetMixin):
             for line in infh:
 #                print(line,len(line))
                 if len(line)>1:
-                    l = np.array(line.strip().split(','),dtype=np.int)
+                    l = np.array(line.strip().split(','),dtype=np.int32)
                     self.maxid = max(self.maxid,max(l))
                 else:
                     l = []
@@ -100,7 +99,7 @@ class Dataset(dataset_mixin.DatasetMixin):
         labels = []
         labels_count = []
         for y in self.dat:
-            x = np.sort(y).tostring()
+            x = np.sort(y).tobytes()
             if x in labels:
                 labels_count[labels.index(x)] += 1
             else:
@@ -203,10 +202,10 @@ def main():
     parser.add_argument('--early_stopping', '-es', type=int, default=0, help='')
     parser.add_argument('--rankV', '-rv', type=int, default=2, help='rank of V')
     parser.add_argument('--rankB', '-rb', type=int, default=0, help='rank of B')
-    parser.add_argument('--dim', '-d', default=None, help='dimension of the kernel (number of items)')
+    parser.add_argument('--dim', '-d', default=None, type=int, help='dimension of the kernel (number of items)')
     parser.add_argument('--n_hidden_channels', '-chs', type=int, nargs="*", default=[],
                         help='number of channels of hidden layers for diagonal entry')
-    parser.add_argument('--batchsize', '-b', type=int, default=20,
+    parser.add_argument('--batchsize', '-b', type=int, default=200,
                         help='Number of samples in each mini-batch')
     parser.add_argument('--predict', '-p', action='store_true', help='prediction with a specified model')
     parser.add_argument('--optimizer', '-op',choices=optim.keys(),default='Adam',
@@ -234,7 +233,10 @@ def main():
     chainer.config.dtype = dtypes[args.dtype]
     chainer.print_runtime_info()
     print(args)
-    save_args(args, args.outdir)
+    os.makedirs(args.outdir, exist_ok=True)
+    with open(os.path.join(args.outdir, "args.json"), mode="w") as f:
+        json.dump(args.__dict__, f, indent=4)
+
 
     # data
     train = Dataset(args.train)
@@ -315,6 +317,8 @@ def main():
 
     ########### (quick&dirty) results
     print("\n\nEntropy of the traing set {}".format(train.compute_entropy()))
+
+    ## comparing the histogram of subsets with two elements containing "pivot"
     # histogram of DPP
     pivot = 0
     L=model(0).array
@@ -333,6 +337,7 @@ def main():
     p[0] = L[pivot,pivot]/nm
     for i in range(pivot+1,args.dim):
         p[i] = np.linalg.det(L[[pivot,i],:][:,[pivot,i]])/nm
+        
     # histogram of data
     p_dat = np.zeros(args.dim)
     for b in train:
@@ -343,9 +348,9 @@ def main():
                 p_dat[b[1]] += 1
     p_dat /= len(train)
     np.set_printoptions(precision=5,suppress=True)
-    print("\n Probability of DPP")
+    print(f"\n Probability of DPP of two elements subsets containing {pivot}")
     print(p)
-    print("\n Probability of data")
+    print(f"\n Probability of data of two elements subsets containing {pivot}")
     print(p_dat)
 
 if __name__ == '__main__':

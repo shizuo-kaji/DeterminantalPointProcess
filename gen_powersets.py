@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
+## generate subsets of a fixed set of _dim_ elements according to the probability specified by the matrix
 
 from __future__ import print_function
 import numpy as np
@@ -11,7 +12,7 @@ import itertools
 parser = argparse.ArgumentParser(description='Generate power sets of a finite set')
 parser.add_argument('--rankV', '-rv', type=int, default=2, help='rank of V (symmetric part)')
 parser.add_argument('--rankB', '-rb', type=int, default=0, help='rank of B (anti-symmetric part)')
-parser.add_argument('--n', '-n', default=5000, help='number of samples')
+parser.add_argument('--n', '-n', default=5000, type=int, help='number of samples')
 parser.add_argument('--dim', '-d', default=5, type=int, help='dimension')
 parser.add_argument('--random', '-r', action='store_true', help='random choice')
 args = parser.parse_args()
@@ -32,11 +33,12 @@ else:
         C = np.random.uniform(low=-2.0, high=2.0, size=(args.dim, args.rankB))
         AS = np.matmul(B,C.T)
         L += AS - AS.T
+        
     ## TODO: sampling
     nm = np.linalg.det(np.eye(L.shape[0])+L)
-    sum_p=1/nm
+    sum_p=1/nm # output each subset according to the histogram defined by the matrix L
     for i in range(int(round(sum_p*args.n,None))):
-        print()
+        print() # emptyset
 #    print(L,nm)
     for m in range(1,args.dim):
         for b in itertools.combinations(l,m):
